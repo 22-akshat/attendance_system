@@ -168,29 +168,47 @@ export function parseAttendanceArrayBuffer(data: ArrayBuffer, fileName: string):
       const calDate = new Date(year, month - 1, day);
       const isoDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
       const dow = daysOfWeek[calDate.getDay()];
+      const isSunday = calDate.getDay() === 0;
 
       let status: DayStatus = 'NA';
-      const statusText = rawStatusCell ? String(rawStatusCell).trim().toUpperCase() : '';
-      const inText = rawInCell ? String(rawInCell).trim().toUpperCase() : '';
+      let autoSundayWO = false;
 
-      if (statusText === 'P' || statusText === 'PRESENT') {
+      const statusText = rawStatusCell !== null && rawStatusCell !== undefined ? String(rawStatusCell).trim().toUpperCase() : '';
+      const inText = rawInCell !== null && rawInCell !== undefined ? String(rawInCell).trim().toUpperCase() : '';
+      const outText = rawOutCell !== null && rawOutCell !== undefined ? String(rawOutCell).trim().toUpperCase() : '';
+
+      // 1. Explicit status values always win (regardless of day of week, e.g. employee worked on Sunday)
+      if (statusText === 'P' || statusText === 'PRESENT' || statusText.startsWith('P')) {
         status = 'P';
-      } else if (statusText === 'A' || statusText === 'ABSENT') {
+      } else if (statusText === 'A' || statusText === 'ABSENT' || statusText.startsWith('A')) {
         status = 'A';
-      } else if (statusText === 'L' || statusText === 'LEAVE') {
+      } else if (statusText === 'L' || statusText === 'LEAVE' || statusText.startsWith('L')) {
         status = 'L';
       } else if (
-        (statusText === '' || statusText === 'W/O' || statusText === 'WO') &&
-        (inText === 'W/O' || inText === 'WO' || inText === 'W/OFF' || inText === 'WEEKLY OFF' || inText === 'WEEK OFF' || statusText === 'W/O' || statusText === 'WO')
+        statusText === 'W/O' || statusText === 'WO' || statusText === 'W/OFF' || statusText === 'WEEKLY OFF' || statusText === 'WEEK OFF' ||
+        inText === 'W/O' || inText === 'WO' || inText === 'W/OFF' || inText === 'WEEKLY OFF' || inText === 'WEEK OFF' ||
+        outText === 'W/O' || outText === 'WO' || outText === 'W/OFF' || outText === 'WEEKLY OFF' || outText === 'WEEK OFF'
       ) {
         status = 'WO';
-      } else if (statusText === '' && (!rawInCell || inText === '')) {
-        status = 'NA';
-      } else if (statusText) {
+        autoSundayWO = false;
+      } else if (inText !== '' || outText !== '') {
+        // Punches or times present without explicit status letter
+        status = 'P';
+      } else if (statusText !== '') {
         if (statusText.startsWith('P')) status = 'P';
         else if (statusText.startsWith('A')) status = 'A';
         else if (statusText.startsWith('L')) status = 'L';
+        else if (statusText.startsWith('W')) status = 'WO';
         else status = 'P';
+      } else {
+        // Raw cells are completely blank (no status letter, no "W/O" text, no in/out time)
+        if (isSunday) {
+          status = 'WO';
+          autoSundayWO = true;
+        } else {
+          status = 'NA';
+          autoSundayWO = false;
+        }
       }
 
       // Parse Times
@@ -236,6 +254,7 @@ export function parseAttendanceArrayBuffer(data: ArrayBuffer, fileName: string):
         edited: false,
         editReason: null,
         manualOverride: 'auto',
+        autoSundayWO,
       });
     }
 

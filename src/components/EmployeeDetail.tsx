@@ -554,7 +554,7 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
                     statusText = 'Leave';
                   } else if (day.status === 'WO') {
                     bgClass = 'bg-slate-100/80 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600';
-                    statusText = 'Weekly Off';
+                    statusText = day.autoSundayWO ? 'Weekly Off (auto — Sunday)' : 'Weekly Off';
                   } else if (day.status === 'NA') {
                     bgClass = 'bg-slate-50 dark:bg-slate-950/30 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600';
                     statusText = 'Not Applicable';
@@ -843,6 +843,8 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
                           <Pencil className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
                           <span>{day.editReason || 'Edited'}</span>
                         </span>
+                      ) : day.autoSundayWO ? (
+                        <span className="text-slate-400 dark:text-slate-500 italic">Auto Sunday WO</span>
                       ) : (
                         <span className="text-slate-400 dark:text-slate-500">-</span>
                       )}

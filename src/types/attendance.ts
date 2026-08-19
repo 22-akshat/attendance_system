@@ -33,6 +33,7 @@ export interface DayRecord {
   edited?: boolean;
   editReason?: string | null;
   manualOverride?: ManualOverrideType;
+  autoSundayWO?: boolean;
 }
 
 export interface EmployeeSummary {
