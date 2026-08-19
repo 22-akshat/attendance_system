@@ -8,21 +8,25 @@ import { FileUpload } from './components/FileUpload';
 import { PolicyModal } from './components/PolicyModal';
 import { extractTimeMinutes } from './utils/timeUtils';
 import { computeEmployeeSummary, evaluateDayWithOverride, recalculateMonthStats } from './utils/policyEngine';
+import { ThemeProvider } from './context/ThemeContext';
 
-export function App() {
+export function AppContent() {
   const [data, setData] = useState<ParsedMonthData | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isPolicyOpen, setIsPolicyOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // File replacement handler (wipes previous state and returns to upload screen)
   const handleReplaceFile = () => {
     setData(null);
     setSelectedEmployeeId(null);
+    setIsMobileSidebarOpen(false);
   };
 
   const handleDataLoaded = (newData: ParsedMonthData) => {
     setData(newData);
     setSelectedEmployeeId(null); // default to all-employees overview
+    setIsMobileSidebarOpen(false);
   };
 
   // Handler for manual day record edits and overrides
@@ -125,12 +129,14 @@ export function App() {
   const selectedEmployee = data?.employees.find(e => e.id === selectedEmployeeId) || null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-600 selection:text-white transition-colors">
       {/* Global Header */}
       <Header
         data={data}
         onReplaceFile={handleReplaceFile}
         onOpenPolicy={() => setIsPolicyOpen(true)}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+        isMobileSidebarOpen={isMobileSidebarOpen}
       />
 
       {/* Main Body */}
@@ -140,17 +146,22 @@ export function App() {
           onOpenPolicy={() => setIsPolicyOpen(true)}
         />
       ) : (
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          {/* Left Sidebar */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+          {/* Left Sidebar (Desktop fixed + Mobile Slide-over Drawer) */}
           <Sidebar
             data={data}
             selectedEmployeeId={selectedEmployeeId}
-            onSelectEmployee={empId => setSelectedEmployeeId(empId)}
+            onSelectEmployee={empId => {
+              setSelectedEmployeeId(empId);
+              setIsMobileSidebarOpen(false);
+            }}
             onReplaceFile={handleReplaceFile}
+            isMobileOpen={isMobileSidebarOpen}
+            onCloseMobile={() => setIsMobileSidebarOpen(false)}
           />
 
           {/* Right Main Content Panel */}
-          <main className="flex-1 flex flex-col overflow-hidden bg-slate-950">
+          <main className="flex-1 flex flex-col overflow-hidden bg-slate-100 dark:bg-slate-950 transition-colors">
             {selectedEmployee ? (
               <EmployeeDetail
                 employee={selectedEmployee}
@@ -174,6 +185,14 @@ export function App() {
         onClose={() => setIsPolicyOpen(false)}
       />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 
